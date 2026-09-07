@@ -1,0 +1,533 @@
+import {
+  CandidateProfile,
+  JobApplication,
+  DiscoveredJob,
+  MasterResume,
+  TailoredResume,
+  CoverLetterItem,
+  toDiscoveredJob,
+} from '@/types';
+import { EMPTY_RESUME } from '@/constants/resume';
+
+export { EMPTY_RESUME };
+
+export const EMPTY_PROFILE: CandidateProfile = {
+  name: '',
+  title: '',
+  email: '',
+  phone: '',
+  location: '',
+  linkedinUrl: '',
+  githubUrl: '',
+  websiteUrl: '',
+  summary: '',
+  skills: [],
+  experiences: [],
+  education: [],
+  projects: [],
+};
+
+export const INITIAL_PROFILE: CandidateProfile = { ...EMPTY_PROFILE };
+
+export const EMPTY_MASTER_RESUME: MasterResume = {
+  id: 'master-resume-empty',
+  versionName: 'Master Resume',
+  lastUpdated: new Date().toISOString().split('T')[0],
+  summary: '',
+  skills: [],
+  experiences: [],
+  education: [],
+  projects: [],
+};
+
+export const INITIAL_MASTER_RESUME: MasterResume = { ...EMPTY_MASTER_RESUME };
+
+export const INITIAL_DISCOVERED_JOBS: DiscoveredJob[] = [
+  {
+    id: 'disc-1',
+    jobTitle: 'Junior Frontend Engineer',
+    companyName: 'SafetyCulture',
+    location: 'Surry Hills, Sydney (Hybrid)',
+    workArrangement: 'Hybrid',
+    employmentType: 'Full-time',
+    salary: '$92,000 + Equity + Super',
+    source: 'Company Site',
+    sourceUrl: 'https://safetyculture.com/careers/',
+    jobUrl: 'https://safetyculture.com/careers/',
+    isDirectApplyLink: true,
+    datePosted: '2026-08-26T09:00:00.000Z',
+    postingStatus: 'Live',
+    matchScore: 95,
+    fitSummary: 'Near-perfect stack and cultural alignment. Your React, TypeScript, and Tailwind CSS expertise directly matches their core operations platform stack.',
+    matchedSkills: ['React', 'TypeScript', 'Tailwind CSS', 'JavaScript (ES6+)', 'REST APIs & GraphQL', 'Git & GitHub Actions'],
+    missingSkills: ['Mobile web offline caching (Service Workers)'],
+    keyRequirements: [
+      'Strong proficiency in React and modern TypeScript',
+      'Solid experience with utility CSS (Tailwind) & responsive design',
+      'Understanding of component reusability and web accessibility',
+    ],
+    jobDescription: `Join SafetyCulture as a Junior Frontend Engineer to build world-class operations software used by frontline teams across 85+ countries.
+
+Key Responsibilities:
+- Build modular, maintainable React components using TypeScript and Tailwind CSS.
+- Optimize app load times and offline-first mobile responsiveness.
+- Collaborate with designers to translate Figma mockups into pixel-perfect reality.
+- Participate in agile sprint planning, testing, and continuous deployment.`,
+    isSaved: true,
+    isApplied: true,
+  },
+  {
+    id: 'disc-2',
+    jobTitle: 'Associate Software Engineer - Frontend & Core Platform',
+    companyName: 'Atlassian',
+    location: 'Sydney, NSW (Remote / Work from Anywhere)',
+    workArrangement: 'Remote',
+    employmentType: 'Full-time',
+    salary: '$100,000 - $112,000 + Stock (RSUs)',
+    source: 'LinkedIn',
+    sourceUrl: 'https://www.atlassian.com/company/careers',
+    jobUrl: 'https://www.atlassian.com/company/careers',
+    isDirectApplyLink: true,
+    datePosted: '2026-08-25T09:00:00.000Z',
+    postingStatus: 'Live',
+    matchScore: 92,
+    fitSummary: 'Outstanding alignment with Atlassian engineering expectations. Strong match on frontend performance, TypeScript typing patterns, and modern component architecture.',
+    matchedSkills: ['TypeScript', 'JavaScript (ES6+)', 'React', 'Next.js (App Router)', 'Tailwind CSS', 'REST APIs & GraphQL', 'Git & GitHub Actions'],
+    missingSkills: ['Design Systems at Scale (Atlassian Design System tokens)', 'Screen-reader accessibility (a11y) testing'],
+    keyRequirements: [
+      'Problem solving skills and passion for web performance, design systems, and TypeScript',
+      'Hands-on experience with React, state management, and modern browser APIs',
+      'Collaborative communication and enthusiasm for developer tooling',
+    ],
+    jobDescription: `Atlassian is looking for an Associate Software Engineer to join our Sydney Core Platform and Product teams. You'll contribute to Jira, Confluence, and Loom, helping millions of global teams unleash their potential.
+
+Requirements:
+- Strong problem solving skills and passion for web performance, design systems, and TypeScript.
+- Hands-on experience with React, state management, and modern browser APIs.
+- Understanding of web accessibility (a11y) and responsive design standards.
+- Collaborative communication and enthusiasm for developer tooling.`,
+    isSaved: true,
+    isApplied: true,
+  },
+  {
+    id: 'disc-3',
+    jobTitle: 'Technology Graduate - Full Stack Software Engineer',
+    companyName: 'Canva',
+    location: 'Sydney, NSW (Hybrid)',
+    workArrangement: 'Hybrid',
+    employmentType: 'Graduate',
+    salary: '$95,000 - $105,000 + Super',
+    source: 'GradConnection',
+    sourceUrl: 'https://www.canva.com/careers/',
+    jobUrl: 'https://www.canva.com/careers/',
+    isDirectApplyLink: true,
+    datePosted: '2026-08-24T09:00:00.000Z',
+    postingStatus: 'Live',
+    matchScore: 88,
+    fitSummary: 'Exceptional fit for graduate expectations. Your portfolio showcases strong React & TypeScript proficiency, full-stack Next.js project work, and distinction-level foundational computer science coursework.',
+    matchedSkills: ['TypeScript', 'JavaScript (ES6+)', 'React', 'Next.js (App Router)', 'SQL', 'PostgreSQL / Supabase', 'REST APIs & GraphQL', 'Git & GitHub Actions'],
+    missingSkills: ['GraphQL', 'End-to-end Testing (Playwright/Cypress)', 'Microservices Architecture basics'],
+    keyRequirements: [
+      'Recent graduate or final-year student in Computer Science or Software Engineering',
+      'Strong proficiency in JavaScript/TypeScript and modern React',
+      'Solid foundational knowledge of Algorithms, Data Structures, and relational databases',
+    ],
+    jobDescription: `About the Role:
+We are looking for enthusiastic Technology Graduates to join Canva's Engineering team in Sydney. As a Full Stack Graduate Engineer, you'll work across our web applications and platform services to empower millions of users worldwide to design anything.
+
+What you'll do:
+- Design, build, and maintain frontend user interfaces with React, TypeScript, and modern CSS.
+- Develop scalable backend microservices and RESTful / GraphQL APIs.
+- Collaborate with Product Managers, Designers, and Senior Engineers in fast-paced agile squads.
+- Write robust unit, integration, and end-to-end automated tests.`,
+    isSaved: true,
+    isApplied: true,
+  },
+  {
+    id: 'disc-4',
+    jobTitle: 'Technology Associate - Digital Engineering',
+    companyName: 'Macquarie Group',
+    location: 'Sydney CBD, NSW',
+    workArrangement: 'Hybrid',
+    employmentType: 'Full-time',
+    salary: '$96,000 + Bonus',
+    source: 'SEEK',
+    sourceUrl: 'https://www.seek.com.au/jobs?keywords=Macquarie+Group+Technology+Associate',
+    jobUrl: 'https://www.seek.com.au/jobs?keywords=Macquarie+Group+Technology+Associate',
+    isDirectApplyLink: false,
+    datePosted: '2026-08-23T09:00:00.000Z',
+    postingStatus: 'Live',
+    matchScore: 82,
+    fitSummary: 'Solid match for Macquarie Digital Engineering. Your background in TypeScript, Python, and SQL is well aligned with their tech stack.',
+    matchedSkills: ['TypeScript', 'Python', 'SQL', 'PostgreSQL / Supabase', 'REST APIs & GraphQL'],
+    missingSkills: ['Java / Spring Boot', 'AWS CloudFormation / Terraform', 'Financial Markets domain knowledge'],
+    keyRequirements: [
+      'Proven programming ability in modern TypeScript, Java, or Python',
+      'Knowledge of relational databases and cloud-native architecture',
+      'Strong analytical and stakeholder engagement capabilities',
+    ],
+    jobDescription: `Macquarie Technology is seeking high-achieving associates to build next-generation financial portals and risk analytics microservices.
+
+Requirements:
+- Proven programming ability in modern TypeScript, Java, or Python.
+- Knowledge of relational databases and cloud-native architecture.
+- Strong analytical and stakeholder engagement capabilities.`,
+    isSaved: true,
+    isApplied: true,
+  },
+  {
+    id: 'disc-5',
+    jobTitle: 'Graduate Technology & Data Analyst',
+    companyName: 'Commonwealth Bank',
+    location: 'Eveleigh, Sydney (Hybrid)',
+    workArrangement: 'Hybrid',
+    employmentType: 'Graduate',
+    salary: '$90,000 + 12% Super',
+    source: 'SEEK',
+    sourceUrl: 'https://www.commbank.com.au/about-us/careers.html',
+    jobUrl: 'https://www.commbank.com.au/about-us/careers.html',
+    isDirectApplyLink: true,
+    datePosted: '2026-08-22T09:00:00.000Z',
+    postingStatus: 'Live',
+    matchScore: 79,
+    fitSummary: 'Strong academic and technical fit for CBA’s tech stream. Your dual CS/Data Science degree and SQL background provide a solid foundation.',
+    matchedSkills: ['SQL', 'Python', 'TypeScript', 'JavaScript (ES6+)', 'Git & GitHub Actions'],
+    missingSkills: ['AWS / Cloud Architecture certifications', 'Enterprise Data Governance', 'Power BI / Tableau'],
+    keyRequirements: [
+      'Degrees in Computer Science, Data Science, Information Systems, or Engineering',
+      'Analytical problem solver with familiarity in SQL, Python, or JavaScript',
+      'Understanding of financial data security and enterprise system architecture',
+    ],
+    jobDescription: `CBA Graduate Program - Technology & Data Stream.
+We are seeking graduates eager to shape the future of banking through digital innovation, cloud transformation, and real-time data engineering.`,
+    isSaved: true,
+    isApplied: true,
+  },
+  {
+    id: 'disc-6',
+    jobTitle: 'Junior Data & Analytics Engineer',
+    companyName: 'Woolworths Group / [wiq]',
+    location: 'Bella Vista / Sydney CBD (Hybrid)',
+    workArrangement: 'Hybrid',
+    employmentType: 'Full-time',
+    salary: '$88,000 - $95,000 + Super',
+    source: 'LinkedIn',
+    sourceUrl: 'https://careers.woolworthsgroup.com.au/',
+    jobUrl: 'https://careers.woolworthsgroup.com.au/',
+    isDirectApplyLink: true,
+    datePosted: '2026-08-21T09:00:00.000Z',
+    postingStatus: 'Live',
+    matchScore: 74,
+    fitSummary: 'Good foundational match. To maximize your callback probability, emphasize your Python data processing coursework and relational database modeling projects.',
+    matchedSkills: ['SQL', 'Python', 'Git & GitHub Actions'],
+    missingSkills: ['Snowflake / Databricks', 'dbt (data build tool)', 'Power BI / Tableau'],
+    keyRequirements: [
+      'Degree in Computer Science, Data Science, or related STEM field',
+      'SQL scripting and Python data processing',
+      'Curiosity for customer behavior and inventory forecasting',
+    ],
+    jobDescription: `Join [wiq], the data and analytics powerhouse of Woolworths Group.
+We are looking for junior engineers to transform retail intelligence across supermarkets and supply chains.`,
+    isSaved: true,
+    isApplied: false,
+  },
+  {
+    id: 'disc-7',
+    jobTitle: 'Cloud Systems Software Engineer (Graduate)',
+    companyName: 'Amazon Web Services (AWS)',
+    location: 'Sydney, NSW (On-site / Hybrid)',
+    workArrangement: 'Hybrid',
+    employmentType: 'Graduate',
+    salary: '$110,000 - $125,000 + RSUs + Relocation',
+    source: 'Company Site',
+    sourceUrl: 'https://amazon.jobs/',
+    jobUrl: 'https://amazon.jobs/',
+    isDirectApplyLink: true,
+    datePosted: '2026-08-20T09:00:00.000Z',
+    postingStatus: 'Live',
+    matchScore: 78,
+    fitSummary: 'Strong coding fundamentals and algorithms background. To excel in screening, highlight Linux systems programming, distributed databases, and cloud resilience principles.',
+    matchedSkills: ['TypeScript', 'Python', 'SQL', 'Git & GitHub Actions', 'REST APIs & GraphQL'],
+    missingSkills: ['AWS Certified Cloud Practitioner', 'C++ / Java Systems Internals', 'Linux Networking (TCP/IP socket tuning)'],
+    keyRequirements: [
+      'Bachelor’s or Master’s in Computer Science or equivalent',
+      'Proficiency in at least one modern language (Python, Java, TypeScript, C++)',
+      'Understanding of distributed systems, multi-threading, and scalability',
+    ],
+    jobDescription: `AWS is hiring Graduate Software Engineers to build the world's most robust cloud computing infrastructure. You will work on cutting-edge distributed computing engines, object storage, and serverless architectures.`,
+    isSaved: false,
+    isApplied: false,
+  },
+  {
+    id: 'disc-8',
+    jobTitle: 'Junior Full Stack Developer',
+    companyName: 'Koala Sleep',
+    location: 'Alexandria, Sydney (Hybrid)',
+    workArrangement: 'Hybrid',
+    employmentType: 'Full-time',
+    salary: '$85,000 - $92,000 + Super',
+    source: 'Indeed',
+    sourceUrl: 'https://au.indeed.com/jobs?q=Koala+Sleep+Developer',
+    jobUrl: 'https://au.indeed.com/jobs?q=Koala+Sleep+Developer',
+    isDirectApplyLink: false,
+    datePosted: '2026-08-13T09:00:00.000Z',
+    postingStatus: 'Expired',
+    archivedDate: '2026-08-18',
+    matchScore: 91,
+    fitSummary: 'High technical match on Next.js, headless e-commerce, and Tailwind CSS. (Note: This job posting has expired on the original platform, but ApplyIQ maintains the archived requirements snapshot).',
+    matchedSkills: ['Next.js (App Router)', 'React', 'TypeScript', 'Tailwind CSS', 'REST APIs & GraphQL', 'SQL'],
+    missingSkills: ['Shopify Storefront API / Liquid templating'],
+    keyRequirements: [
+      'Experience building responsive e-commerce web applications in React and Next.js',
+      'Comfortable integrating third-party APIs and relational databases',
+    ],
+    jobDescription: `Koala is seeking a Junior Full Stack Developer to help build delightful, fast shopping experiences across web and mobile.
+
+Responsibilities:
+- Build high-conversion React storefront components.
+- Integrate headless checkout and inventory services.
+- Optimize site Core Web Vitals and accessibility.`,
+    isSaved: false,
+    isApplied: false,
+  },
+  {
+    id: 'disc-9',
+    jobTitle: 'Network & Cloud Software Graduate',
+    companyName: 'Telstra',
+    location: 'Sydney, NSW (Hybrid)',
+    workArrangement: 'Hybrid',
+    employmentType: 'Graduate',
+    salary: '$85,000 + Super',
+    source: 'GradConnection',
+    sourceUrl: 'https://careers.telstra.com/',
+    jobUrl: 'https://careers.telstra.com/',
+    isDirectApplyLink: true,
+    datePosted: '2026-08-06T09:00:00.000Z',
+    postingStatus: 'Archived',
+    archivedDate: '2026-08-01',
+    matchScore: 68,
+    fitSummary: 'Moderate fit. Role placed significant emphasis on specialized telecommunications hardware and BGP routing coursework rather than full-stack development.',
+    matchedSkills: ['Python', 'Git & GitHub Actions', 'TypeScript'],
+    missingSkills: ['Telecommunications & 5G Routing', 'CCNA / Cisco Network protocols', 'Linux Kernel tuning'],
+    keyRequirements: [
+      'Network Infrastructure knowledge (BGP, SDN, 5G)',
+      'Scripting in Python or Bash for network automation',
+    ],
+    jobDescription: `Telstra Graduate Program - Networks & Cloud Infrastructure stream.
+Focused on 5G deployment, software-defined networking, and telecommunications routing protocols.`,
+    isSaved: false,
+    isApplied: true,
+  },
+].map(toDiscoveredJob);
+
+export const INITIAL_TAILORED_RESUMES: TailoredResume[] = [];
+
+export const INITIAL_COVER_LETTERS: CoverLetterItem[] = [];
+
+export const INITIAL_APPLICATIONS: JobApplication[] = [
+  {
+    id: 'app-0',
+    companyName: 'Stripe',
+    jobTitle: 'Software Engineer - Developer Experience & SDKs',
+    jobUrl: 'https://stripe.com/jobs/dev-exp-2026',
+    applicationDate: '2026-08-25',
+    status: 'wishlist',
+    location: 'Sydney, NSW (Hybrid)',
+    workType: 'Hybrid',
+    salary: '$110,000 - $125,000 + Equity',
+    notes: 'Bookmarked to tailor resume for developer productivity and tooling experience.',
+    jobDescription: `Join Stripe to build world-class developer tools, APIs, and client SDKs powering internet commerce.`,
+    orderIndex: 0,
+    aiAnalysis: {
+      matchScore: 90,
+      fitSummary: 'Strong TypeScript and REST API alignment. Matches developer tooling and SDK design requirements.',
+      matchedSkills: ['TypeScript', 'JavaScript (ES6+)', 'Node.js / Express', 'REST APIs & GraphQL', 'Git & GitHub Actions'],
+      missingSkills: ['Go / Ruby', 'Distributed tracing at scale'],
+      keyRequirements: [
+        {
+          requirement: 'Deep familiarity with TypeScript / JavaScript SDK architecture',
+          candidateFit: 'Strong',
+          note: 'Hands-on TypeScript architecture background.',
+        },
+      ],
+      cvRecommendations: ['Highlight SDK tooling and package architecture in master resume.'],
+      coverLetterDraft: '',
+    },
+    createdAt: '2026-08-25T10:00:00.000Z',
+    updatedAt: '2026-08-25T10:00:00.000Z',
+  },
+  {
+    id: 'app-4',
+    companyName: 'Commonwealth Bank',
+    jobTitle: 'Graduate Technology Engineer - Digital Platforms',
+    jobUrl: 'https://www.commbank.com.au/careers/graduates',
+    applicationDate: '2026-08-18',
+    status: 'applied',
+    location: 'Sydney, NSW (On-site / Hybrid)',
+    workType: 'Hybrid',
+    salary: '$88,000 + Super',
+    notes: 'Submitted via portal. Attached tailored snapshot focusing on cloud and security coursework.',
+    jobDescription: `The CommBank Technology Graduate Program offers rotations across Cloud Platforms, Core Banking Systems, and Digital Experience.`,
+    orderIndex: 0,
+    aiAnalysis: {
+      matchScore: 84,
+      fitSummary: 'Solid foundations across SQL, algorithms, and web applications.',
+      matchedSkills: ['SQL', 'TypeScript', 'React', 'Git & GitHub Actions', 'PostgreSQL / Supabase'],
+      missingSkills: ['Enterprise Java / Spring Boot', 'Kafka event streaming'],
+      keyRequirements: [
+        {
+          requirement: 'Recent graduate in Computer Science or Software Engineering',
+          candidateFit: 'Strong',
+          note: 'Bachelor of Science (Computer Science).',
+        },
+      ],
+      cvRecommendations: ['Feature academic achievements and group project leadership roles.'],
+      coverLetterDraft: '',
+    },
+    createdAt: '2026-08-18T14:00:00.000Z',
+    updatedAt: '2026-08-18T14:00:00.000Z',
+  },
+  {
+    id: 'app-1',
+    companyName: 'Canva',
+    jobTitle: 'Technology Graduate - Full Stack Software Engineer',
+    jobUrl: 'https://www.canva.com/careers/jobs/grad-fullstack-2026',
+    applicationDate: '2026-08-10',
+    status: 'interviewing',
+    location: 'Sydney, NSW (Hybrid)',
+    workType: 'Hybrid',
+    salary: '$95,000 - $105,000 + Super',
+    notes: 'Online coding assessment completed. Technical live pairing scheduled for next Thursday.',
+    jobDescription: `About the Role:
+We are looking for enthusiastic Technology Graduates to join Canva's Engineering team in Sydney. As a Full Stack Graduate Engineer, you'll work across our web applications and platform services to empower millions of users worldwide to design anything.`,
+    orderIndex: 0,
+    aiAnalysis: {
+      matchScore: 88,
+      fitSummary: 'Exceptional fit for graduate expectations. Showcases strong React & TypeScript proficiency and full-stack project work.',
+      matchedSkills: ['TypeScript', 'JavaScript (ES6+)', 'React', 'Next.js (App Router)', 'SQL', 'PostgreSQL / Supabase', 'REST APIs & GraphQL', 'Git & GitHub Actions'],
+      missingSkills: ['GraphQL', 'End-to-end Testing (Playwright/Cypress)', 'Microservices Architecture basics'],
+      keyRequirements: [
+        {
+          requirement: 'Recent graduate in Computer Science or Software Engineering',
+          candidateFit: 'Strong',
+          note: 'Bachelor of Science (Computer Science).',
+        },
+        {
+          requirement: 'Proficiency in React and TypeScript',
+          candidateFit: 'Strong',
+          note: 'Demonstrated across full-stack engineering projects.',
+        },
+        {
+          requirement: 'Relational Database experience (PostgreSQL)',
+          candidateFit: 'Strong',
+          note: 'Hands-on PostgreSQL experience in web applications.',
+        },
+      ],
+      cvRecommendations: [
+        'Emphasize full-stack engineering experience in the top 1/3 of your resume.',
+        'Explicitly mention unit and component testing experience on projects.',
+        'Highlight relevant computer science coursework under Education.',
+      ],
+      coverLetterDraft: '',
+    },
+    createdAt: '2026-08-10T09:00:00.000Z',
+    updatedAt: '2026-08-14T14:30:00.000Z',
+  },
+  {
+    id: 'app-2',
+    companyName: 'Atlassian',
+    jobTitle: 'Associate Software Engineer - Frontend / Core Platform',
+    jobUrl: 'https://www.atlassian.com/company/careers/details/ase-syd-2026',
+    applicationDate: '2026-08-04',
+    status: 'interviewing',
+    location: 'Sydney, NSW (Remote / Work from Anywhere)',
+    workType: 'Remote',
+    salary: '$100,000 - $112,000 + Stock (RSUs)',
+    notes: 'Passed initial screening and technical challenge. Technical interview scheduled for next Tuesday with the Jira Frontend team.',
+    jobDescription: `Atlassian is looking for an Associate Software Engineer to join our Sydney Core Platform and Product teams.`,
+    orderIndex: 1,
+    aiAnalysis: {
+      matchScore: 92,
+      fitSummary: 'Outstanding alignment with engineering expectations. Strong alignment with frontend performance, TypeScript typing patterns, and modern component architecture.',
+      matchedSkills: ['TypeScript', 'JavaScript (ES6+)', 'React', 'Next.js (App Router)', 'Tailwind CSS', 'REST APIs & GraphQL', 'Git & GitHub Actions'],
+      missingSkills: ['Design Systems at Scale (Atlassian Design System tokens)', 'Web Accessibility (a11y) screen-reader testing'],
+      keyRequirements: [
+        {
+          requirement: 'Demonstrated React & TypeScript expertise',
+          candidateFit: 'Strong',
+          note: 'Extensive codebase experience across projects and code review mentoring.',
+        },
+      ],
+      cvRecommendations: [
+        'Highlight real-world Core Web Vitals and web performance instrumentation.',
+      ],
+      coverLetterDraft: '',
+    },
+    createdAt: '2026-08-04T11:20:00.000Z',
+    updatedAt: '2026-08-16T10:15:00.000Z',
+  },
+  {
+    id: 'app-3',
+    companyName: 'SafetyCulture',
+    jobTitle: 'Junior Frontend Engineer',
+    jobUrl: 'https://safetyculture.com/careers/junior-frontend',
+    applicationDate: '2026-07-28',
+    status: 'offer',
+    location: 'Surry Hills, Sydney (Hybrid)',
+    workType: 'Hybrid',
+    salary: '$92,000 + Equity + Perks',
+    notes: 'Formal offer letter received! Reviewing contract terms and benefits.',
+    jobDescription: `Join SafetyCulture as a Junior Frontend Engineer to build world-class operations software used by frontline workers across 85+ countries.`,
+    orderIndex: 0,
+    aiAnalysis: {
+      matchScore: 95,
+      fitSummary: 'Near-perfect stack and cultural match. Tailwind CSS, React, and responsive UI background directly match core tech stack.',
+      matchedSkills: ['React', 'TypeScript', 'Tailwind CSS', 'JavaScript (ES6+)', 'REST APIs & GraphQL', 'Git & GitHub Actions'],
+      missingSkills: ['Mobile web offline caching (Service Workers)'],
+      keyRequirements: [
+        {
+          requirement: 'Strong React and Tailwind CSS proficiency',
+          candidateFit: 'Strong',
+          note: 'Primary stack used across portfolio applications.',
+        },
+      ],
+      cvRecommendations: [
+        'Lead with your Tailwind CSS and React component system experience.',
+      ],
+      coverLetterDraft: '',
+    },
+    createdAt: '2026-07-28T08:00:00.000Z',
+    updatedAt: '2026-08-18T16:00:00.000Z',
+  },
+  {
+    id: 'app-5',
+    companyName: 'Optiver',
+    jobTitle: 'Graduate Software Developer (C++ / Python)',
+    jobUrl: 'https://optiver.com/careers/grad-dev-2026',
+    applicationDate: '2026-07-15',
+    status: 'rejected',
+    location: 'Sydney, NSW (On-site)',
+    workType: 'On-site',
+    salary: '$140,000 + Bonus',
+    notes: 'Reached stage 3 technical interview. Position required low-level Linux kernel and low-latency C++ systems tuning.',
+    jobDescription: `Optiver is a leading global market maker looking for Graduate Developers to design ultra-low latency trading systems.`,
+    orderIndex: 0,
+    aiAnalysis: {
+      matchScore: 65,
+      fitSummary: 'Strong general algorithmic skills, but role emphasized low-level hardware memory management and C++ templates.',
+      matchedSkills: ['Python', 'SQL', 'Git & GitHub Actions'],
+      missingSkills: ['Modern C++ (C++20)', 'Kernel bypass networking', 'Low-latency assembly optimization'],
+      keyRequirements: [
+        {
+          requirement: 'Ultra-low latency C++ software engineering',
+          candidateFit: 'Missing',
+          note: 'Web-focused background rather than systems programming.',
+        },
+      ],
+      cvRecommendations: ['Focus on distributed full-stack and web platform roles.'],
+      coverLetterDraft: '',
+    },
+    createdAt: '2026-07-15T09:00:00.000Z',
+    updatedAt: '2026-07-29T11:00:00.000Z',
+  },
+];

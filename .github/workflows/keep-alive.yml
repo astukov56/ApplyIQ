@@ -1,0 +1,22 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Runs every 4 days at 00:00 UTC
+    - cron: '0 0 */4 * *'
+  workflow_dispatch:
+
+jobs:
+  ping-db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          # Strip any quotes, carriage returns, or spaces from the secret key
+          CLEAN_KEY=$(echo "$ANON_KEY" | tr -d '\r\n "' | sed 's/^.*=//')
+
+          curl -i -X GET "https://fktvpanvyswxuhigttsc.supabase.co/rest/v1/" \
+            -H "apikey: ${CLEAN_KEY}" \
+            -H "Authorization: Bearer ${CLEAN_KEY}"
