@@ -71,9 +71,17 @@ STRICT IMMUTABILITY RULES FOR RESUME — VIOLATIONS NOT ACCEPTABLE
 • Carry over ALL Work Experience entries and ALL Projects 100% verbatim.
 
 ════════════════════════════════════════════════════════════
+STRICT 1-PAGE A4 ATS LENGTH BUDGETING RULES
+════════════════════════════════════════════════════════════
+• The resume MUST fit completely on a single A4 page (210mm x 297mm) without spilling onto page two.
+• PROFESSIONAL SUMMARY: Strictly capped to 3–4 lines maximum (40–60 words). Keep it punchy, metric-driven, and keyword-aligned.
+• WORK EXPERIENCE BULLETS: Target maximum 3–4 high-impact, keyword-rich bullet points for recent roles; maximum 2 bullets for older roles.
+• TECHNICAL SKILLS: Concise inline categories with maximum 2–4 high-impact additions.
+
+════════════════════════════════════════════════════════════
 ALLOWED RESUME TAILORING SCOPE (exhaustive — nothing else)
 ════════════════════════════════════════════════════════════
-1. PROFESSIONAL SUMMARY (max 3–4 sentences):
+1. PROFESSIONAL SUMMARY (strictly max 3–4 sentences, 40–60 words):
    Re-align the existing summary to incorporate the most targeted keywords
    from the job description naturally. Stay entirely truthful to the
    candidate's actual background. Do not invent experience or achievements.
@@ -274,8 +282,16 @@ Apply ONLY the permitted tailoring edits and return the complete JSON output.`;
         ...newSkillItems,                    // ≤ MAX_NEW_SKILLS appended skills
       ],
 
-      // ── Immutable fields — sourced directly from original resume ─────────
-      experiences: originalResume.experiences || [],
+      // ── Immutable fields — budgeted for 1-page A4 ATS compliance ──────────
+      experiences: (originalResume.experiences || []).map((exp, idx) => ({
+        ...exp,
+        highlights:
+          idx === 0
+            ? (exp.highlights || []).slice(0, 4)
+            : idx === 1
+            ? (exp.highlights || []).slice(0, 3)
+            : (exp.highlights || []).slice(0, 2),
+      })),
       education:   originalResume.education   || [],
       projects:    originalResume.projects    || [],
 

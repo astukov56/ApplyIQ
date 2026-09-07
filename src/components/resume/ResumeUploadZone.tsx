@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import clsx from 'clsx';
 import {
   UploadCloud,
@@ -85,28 +85,41 @@ export function ResumeUploadZone({ onParsed, className }: ResumeUploadZoneProps)
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
 
   const reset = () => {
     setFile(null);
     setStatus('idle');
     setErrorMsg(null);
+    setErrorToast(null);
     setProgress('');
     if (inputRef.current) inputRef.current.value = '';
   };
+
+  useEffect(() => {
+    if (!errorToast) return;
+    const timer = setTimeout(() => {
+      setErrorToast(null);
+    }, 9000);
+    return () => clearTimeout(timer);
+  }, [errorToast]);
 
   const processFile = useCallback(async (f: File) => {
     const ext = f.name.split('.').pop()?.toLowerCase();
     if (!['pdf', 'doc', 'docx'].includes(ext ?? '')) {
       setFile(f);
       setStatus('error');
-      setErrorMsg(`Unsupported format ".${ext}". Please upload a .pdf, .doc, or .docx file.`);
+      const err = `Unsupported format ".${ext}". Please upload a .pdf, .doc, or .docx file.`;
+      setErrorMsg(err);
+      setErrorToast(err);
       return;
     }
 
     setFile(f);
     setStatus('uploading');
     setErrorMsg(null);
+    setErrorToast(null);
 
     try {
       setProgress('Extracting text…');
@@ -119,18 +132,38 @@ export function ResumeUploadZone({ onParsed, className }: ResumeUploadZoneProps)
       });
 
       setProgress('Structuring with AI…');
-      const json = await res.json();
+      let json: { success?: boolean; data?: ParsedResumeData; error?: string } = {};
+      try {
+        json = await res.json();
+      } catch {
+        json = { error: 'Failed to parse response from server' };
+      }
 
       if (!res.ok || !json.success) {
-        throw new Error(json.error ?? 'Parse failed');
+        if (
+          res.status === 401 ||
+          json.error?.toLowerCase().includes('openai api key') ||
+          json.error?.toLowerCase().includes('unauthorized') ||
+          json.error?.toLowerCase().includes('401')
+        ) {
+          const authError = 'Invalid OpenAI API key. Please verify OPENAI_API_KEY in your .env.local file.';
+          setErrorToast(authError);
+          throw new Error(authError);
+        }
+        const generalError = json.error ?? 'Parse failed';
+        setErrorToast(generalError);
+        throw new Error(generalError);
       }
 
       setStatus('success');
       setProgress('');
+      setErrorToast(null);
       onParsed(json.data as ParsedResumeData);
     } catch (err: unknown) {
       setStatus('error');
-      setErrorMsg(err instanceof Error ? err.message : 'Unexpected error during parsing.');
+      const msg = err instanceof Error ? err.message : 'Unexpected error during parsing.';
+      setErrorMsg(msg);
+      setErrorToast(msg);
     }
   }, [onParsed]);
 
@@ -308,6 +341,35 @@ export function ResumeUploadZone({ onParsed, className }: ResumeUploadZoneProps)
           >
             <X className="w-3 h-3" />
             Upload different file
+          </button>
+        </div>
+      )}
+
+      {/* Floating Error Toast Notification */}
+      {errorToast && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed bottom-6 right-6 z-[9999] max-w-md w-[calc(100vw-3rem)] p-4 rounded-2xl bg-slate-900 dark:bg-slate-950 text-white border border-rose-500/50 shadow-2xl shadow-rose-950/40 backdrop-blur-xl animate-in slide-in-from-bottom-5 fade-in duration-300 flex items-start gap-3"
+        >
+          <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 mt-0.5">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-rose-400 uppercase tracking-wider">
+              {errorToast.includes('OpenAI') ? 'API Key Configuration Error' : 'Upload & Parse Notice'}
+            </p>
+            <p className="text-xs text-slate-100 font-medium mt-1 leading-relaxed">
+              {errorToast}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorToast(null)}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+            aria-label="Dismiss error notification"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
       )}

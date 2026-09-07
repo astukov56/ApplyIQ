@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import type { ResumeVersion, CoverLetterItem, MasterResume, CandidateProfile } from '@/types';
@@ -9,6 +10,7 @@ import { ResumeUploadZone } from '@/components/resume/ResumeUploadZone';
 import { MasterResumeOnboard } from '@/components/onboarding/MasterResumeOnboard';
 import { MasterResumePreview } from '@/components/resume/MasterResumePreview';
 import { TailoredResumePreview } from '@/components/tailor/TailoredResumePreview';
+import { CoverLetterPreview } from '@/components/tailor/CoverLetterPreview';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Modal, Input, Textarea } from '@/components/ui';
 import {
   FileText,
@@ -29,10 +31,18 @@ import {
   Save,
   LogIn,
   Cloud,
+  RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
 import { exportResumeVersionDocx, exportCoverLetterDocx } from '@/lib/export/exportDocx';
-import { printHtml, buildResumeHtml, buildCoverLetterHtml } from '@/lib/export/exportPdf';
+import { printHtml, buildResumeHtml, buildCoverLetterHtml, exportResumeVersionPdf } from '@/lib/export/exportPdf';
+import {
+  ResumeFormatSettings,
+  DEFAULT_FORMAT_SETTINGS,
+  DEFAULT_COVER_LETTER_FORMAT_SETTINGS,
+  getSavedFormatSettings,
+  saveFormatSettings,
+} from '@/types/resumeFormat';
 import { trackResumeDownload } from '@/lib/telemetry';
 import {
   normalizeUrl,
@@ -79,6 +89,48 @@ function relativeDate(iso: string): string {
 
 type TabType = 'master' | 'tailored' | 'letters';
 
+function ResumeHubSkeleton() {
+  return (
+    <div className="space-y-6 sm:space-y-8 animate-pulse p-2 sm:p-4 max-w-7xl mx-auto" aria-busy="true" aria-label="Loading resume workspace">
+      {/* Header skeleton */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-2">
+          <div className="h-8 w-64 rounded-lg bg-slate-200 dark:bg-slate-800" />
+          <div className="h-4 w-96 max-w-full rounded bg-slate-100 dark:bg-slate-800/60" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-9 w-24 rounded-xl bg-slate-200 dark:bg-slate-800" />
+          <div className="h-9 w-32 rounded-xl bg-slate-200 dark:bg-slate-800" />
+        </div>
+      </div>
+
+      {/* Tab navigation skeleton */}
+      <div className="flex items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="h-6 w-32 rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="h-6 w-32 rounded bg-slate-100 dark:bg-slate-800/60" />
+        <div className="h-6 w-28 rounded bg-slate-100 dark:bg-slate-800/60" />
+      </div>
+
+      {/* Control Card skeleton */}
+      <div className="h-24 rounded-2xl bg-slate-200 dark:bg-slate-800/70" />
+
+      {/* Harvard sheet preview skeleton */}
+      <div className="mx-auto w-[816px] max-w-full h-[650px] rounded-lg bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 p-8 space-y-6">
+        <div className="space-y-2 text-center flex flex-col items-center">
+          <div className="h-7 w-48 rounded bg-slate-200 dark:bg-slate-700" />
+          <div className="h-4 w-72 rounded bg-slate-200 dark:bg-slate-700/60" />
+        </div>
+        <div className="h-px w-full bg-slate-200 dark:bg-slate-700" />
+        <div className="space-y-3">
+          <div className="h-5 w-36 rounded bg-slate-200 dark:bg-slate-700" />
+          <div className="h-4 w-full rounded bg-slate-100 dark:bg-slate-800" />
+          <div className="h-4 w-5/6 rounded bg-slate-100 dark:bg-slate-800" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ResumeHubContent() {
   const searchParams = useSearchParams();
   const rawTab = searchParams.get('tab');
@@ -92,9 +144,11 @@ function ResumeHubContent() {
   const {
     profile,
     updateMasterResume,
+    resetMasterResume,
     masterResume,
     resumes,
     getMasterResume,
+    updateResumeVersion,
     deleteResumeVersion,
     coverLetters,
     updateCoverLetter,
@@ -103,11 +157,41 @@ function ResumeHubContent() {
     user,
     isGuestMode,
     openAuthModal,
+    isLoaded,
   } = useApp();
+
+  const [mounted, setMounted] = useState(false);
+  const [isDismissedOnboard, setIsDismissedOnboard] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('applyiq_resume_scratch') === 'true') {
+        setIsDismissedOnboard(true);
+      }
+    } catch (_) {}
+  }, []);
 
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [showUploadZone, setShowUploadZone] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadSuccessMsg, setUploadSuccessMsg] = useState<string | null>(null);
+  const [formatSettings, setFormatSettings] = useState<ResumeFormatSettings>(() =>
+    getSavedFormatSettings('resume', DEFAULT_FORMAT_SETTINGS)
+  );
+  const [letterFormatSettings, setLetterFormatSettings] = useState<ResumeFormatSettings>(() =>
+    getSavedFormatSettings('cover_letter', DEFAULT_COVER_LETTER_FORMAT_SETTINGS)
+  );
+
+  const handleUpdateFormatSettings = (updated: ResumeFormatSettings) => {
+    setFormatSettings(updated);
+    saveFormatSettings('resume', updated);
+  };
+
+  const handleUpdateLetterFormatSettings = (updated: ResumeFormatSettings) => {
+    setLetterFormatSettings(updated);
+    saveFormatSettings('cover_letter', updated);
+  };
 
   // Master Resume live debounced persistence state
   const [isSavingMaster, setIsSavingMaster] = useState(false);
@@ -217,57 +301,33 @@ function ResumeHubContent() {
     });
     setUploadSuccessMsg('Master Resume parsed & updated successfully!');
     setShowUploadZone(false);
+    setIsUploadModalOpen(false);
     setTimeout(() => setUploadSuccessMsg(null), 8000);
+  };
+
+  const handleResetToBlank = () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to reset your master resume? All current edits will be cleared and you will return to the initial setup screen.'
+    );
+    if (!confirmed) return;
+
+    resetMasterResume();
+    try {
+      sessionStorage.removeItem('applyiq_resume_scratch');
+      localStorage.removeItem('applyiq_resume_scratch');
+    } catch (_) {}
+    setIsDismissedOnboard(false);
   };
 
   // Export handlers for Resume
   const handleExportResumeDocx = (ver: ResumeVersion) => {
     trackResumeDownload('docx', ver.title);
-    exportResumeVersionDocx(ver, profile);
+    exportResumeVersionDocx(ver, profile, formatSettings);
   };
 
   const handleExportResumePdf = (ver: ResumeVersion) => {
     trackResumeDownload('pdf', ver.title);
-    const skillsText = ver.tailoredSkills
-      ? [
-          ...ver.tailoredSkills.languages,
-          ...ver.tailoredSkills.frameworks,
-          ...ver.tailoredSkills.cloudAndData,
-          ...ver.tailoredSkills.tools,
-        ].join(', ')
-      : ver.skills.map((s) => s.name).join(', ');
-
-    const html = buildResumeHtml({
-      name: profile.name,
-      title: profile.title,
-      email: profile.email,
-      phone: profile.phone,
-      location: profile.location,
-      linkedinUrl: profile.linkedinUrl,
-      githubUrl: profile.githubUrl,
-      websiteUrl: profile.websiteUrl,
-      summary: ver.summary,
-      skillsText,
-      experiences: ver.experiences.map((e) => ({
-        role: e.role,
-        company: e.company,
-        start: e.startDate,
-        end: e.endDate,
-        location: e.location,
-        highlights: e.highlights,
-      })),
-      projects: (ver.tailoredProjects ?? ver.projects?.map((p) => ({ name: p.title, bullets: [p.description] })) ?? []),
-      education: ver.education.map((edu) => ({
-        degree: edu.degree,
-        institution: edu.institution,
-        start: edu.startDate,
-        end: edu.endDate,
-        grade: edu.grade,
-        details: edu.details,
-      })),
-    });
-
-    printHtml(html, `${profile.name} - ${ver.title}`);
+    exportResumeVersionPdf(ver, profile, formatSettings);
   };
 
   // Export handlers for Master Resume
@@ -276,22 +336,24 @@ function ResumeHubContent() {
   };
 
   const handleExportMasterDocx = () => {
-    exportResumeVersionDocx(masterResumeVersion, profile);
+    exportResumeVersionDocx(masterResumeVersion, profile, formatSettings);
   };
 
   // Export handlers for Cover Letter
   const handleExportLetterDocx = (cl: CoverLetterItem) => {
-    exportCoverLetterDocx(cl, profile);
+    exportCoverLetterDocx(cl, profile, letterFormatSettings);
   };
 
   const handleExportLetterPdf = (cl: CoverLetterItem) => {
     const html = buildCoverLetterHtml({
       name: profile.name,
+      title: profile.title,
       email: profile.email,
       phone: profile.phone,
       location: profile.location,
       linkedinUrl: profile.linkedinUrl,
       githubUrl: profile.githubUrl,
+      websiteUrl: profile.websiteUrl,
       targetCompany: cl.targetCompany,
       targetPosition: cl.targetPosition,
       bodyText: cl.bodyText,
@@ -301,7 +363,7 @@ function ResumeHubContent() {
         year: 'numeric',
       }),
     });
-    printHtml(html, `Cover Letter - ${profile.name} for ${cl.targetCompany}`);
+    printHtml(html, `Cover Letter - ${profile.name} for ${cl.targetCompany}`, letterFormatSettings);
   };
 
   const handleStartEditLetter = (cl: CoverLetterItem) => {
@@ -317,12 +379,9 @@ function ResumeHubContent() {
     setTimeout(() => setLetterSavedMsg(false), 3000);
   };
 
-  const [isDismissedOnboard, setIsDismissedOnboard] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('applyiq_resume_scratch') === 'true';
-    }
-    return false;
-  });
+  if (!mounted || !isLoaded) {
+    return <ResumeHubSkeleton />;
+  }
 
   const isMasterResumeEmpty =
     !profile.name.trim() &&
@@ -522,13 +581,22 @@ function ResumeHubContent() {
                   Edit Details
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="primary"
                   size="sm"
                   icon={<UploadCloud className="w-3.5 h-3.5" />}
-                  onClick={() => setShowUploadZone((prev) => !prev)}
-                  className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs"
+                  onClick={() => setIsUploadModalOpen(true)}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs"
                 >
-                  {showUploadZone ? 'Hide Import' : 'Import File (PDF / DOCX)'}
+                  Upload / Replace Resume
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<RotateCcw className="w-3.5 h-3.5 text-slate-300" />}
+                  onClick={handleResetToBlank}
+                  className="bg-white/5 hover:bg-rose-500/20 text-slate-300 hover:text-rose-200 border-white/15 hover:border-rose-500/40 text-xs"
+                >
+                  Reset to Blank
                 </Button>
                 <Button
                   variant="secondary"
@@ -577,6 +645,12 @@ function ResumeHubContent() {
             onChange={handleMasterResumeChange}
             isSaving={isSavingMaster}
             lastSaved={lastSavedMaster}
+            onUploadClick={() => setIsUploadModalOpen(true)}
+            onResetClick={handleResetToBlank}
+            formatSettings={formatSettings}
+            onFormatChange={setFormatSettings}
+            onExportDocx={handleExportMasterDocx}
+            onExportPdf={handleExportMasterPdf}
           />
         </div>
       )}
@@ -759,14 +833,19 @@ function ResumeHubContent() {
                       </Card>
                     )}
 
-                    {/* Tailored Document View — Standardized Executive ATS Format */}
+                    {/* Tailored Document View — Standardized Executive ATS Format with Toolbar */}
                     <div className="flex justify-center overflow-x-auto">
                       <TailoredResumePreview
                         resume={selectedVersion}
                         profile={profile}
                         highlightKeywords={new Set(selectedVersion.matchedKeywords || [])}
-                        showControls={false}
-                        editable={false}
+                        showControls={true}
+                        editable={true}
+                        formatSettings={formatSettings}
+                        onFormatChange={setFormatSettings}
+                        onExportDocx={() => handleExportResumeDocx(selectedVersion)}
+                        onExportPdf={() => handleExportResumePdf(selectedVersion)}
+                        onChange={(updated) => updateResumeVersion(updated.id, updated)}
                       />
                     </div>
                   </>
@@ -855,160 +934,55 @@ function ResumeHubContent() {
               <div className="lg:col-span-2 space-y-5">
                 {selectedLetter && (
                   <>
-                    {/* Action Bar */}
-                    <Card className="border-indigo-200/60 dark:border-indigo-900/40 bg-gradient-to-r from-slate-50/40 to-indigo-50/30 dark:from-slate-900/20 dark:to-indigo-950/20">
-                      <CardContent className="py-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="space-y-0.5">
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                              {selectedLetter.targetCompany} — {selectedLetter.targetPosition}
-                            </h3>
-                            <p className="text-xs text-slate-500">
-                              Generated {selectedLetter.dateGenerated} • Recipient: {selectedLetter.recipientName || 'Hiring Team'}
-                            </p>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-2">
-                            {editingLetterId === selectedLetter.id ? (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                icon={<Save className="w-3.5 h-3.5" />}
-                                onClick={() => handleSaveLetter(selectedLetter.id)}
-                                className="text-xs"
-                              >
-                                Save Edits
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                icon={<Edit className="w-3.5 h-3.5" />}
-                                onClick={() => handleStartEditLetter(selectedLetter)}
-                                className="text-xs"
-                              >
-                                Edit Text
-                              </Button>
-                            )}
-
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              icon={<FileCode className="w-3.5 h-3.5" />}
-                              onClick={() => handleExportLetterDocx(selectedLetter)}
-                              className="text-xs"
-                            >
-                              Word (.docx)
-                            </Button>
-
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              icon={<Printer className="w-3.5 h-3.5" />}
-                              onClick={() => handleExportLetterPdf(selectedLetter)}
-                              className="text-xs"
-                            >
-                              Print / PDF
-                            </Button>
-
-                            <button
-                              onClick={() => {
-                                if (confirm(`Delete cover letter for "${selectedLetter.targetCompany}"?`)) {
-                                  deleteCoverLetter(selectedLetter.id);
-                                  setSelectedLetter(coverLetters.find((x) => x.id !== selectedLetter.id) ?? null);
-                                }
-                              }}
-                              className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                              title="Delete letter"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {letterSavedMsg && (
-                      <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        Cover letter edits saved successfully!
-                      </div>
-                    )}
-
-                    {/* Document Preview or Edit Mode */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 sm:p-12 shadow-sm space-y-6 max-w-3xl font-sans">
-                      {/* Header with hyperlinks */}
-                      <div className="border-b border-slate-200 dark:border-slate-800 pb-5 space-y-1">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{profile.name}</h2>
-                        <div className="flex flex-wrap gap-x-3 text-xs text-slate-500">
-                          <span>{profile.email}</span>
-                          <span>•</span>
-                          <span>{profile.phone}</span>
-                          <span>•</span>
-                          <span>{profile.location}</span>
-                          {profile.linkedinUrl && (
-                            <>
-                              <span>•</span>
-                              <a
-                                href={normalizeLinkedInUrl(profile.linkedinUrl)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-indigo-600 dark:text-indigo-400 hover:underline"
-                              >
-                                {formatLinkedInDisplay(profile.linkedinUrl)}
-                              </a>
-                            </>
-                          )}
-                          {profile.githubUrl && (
-                            <>
-                              <span>•</span>
-                              <a
-                                href={normalizeGitHubUrl(profile.githubUrl)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-indigo-600 dark:text-indigo-400 hover:underline"
-                              >
-                                {formatGitHubDisplay(profile.githubUrl)}
-                              </a>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Date & Recipient */}
-                      <div className="text-xs text-slate-500 space-y-1">
-                        <p>{new Date(selectedLetter.dateGenerated).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                        <p className="font-semibold text-slate-800 dark:text-slate-200">
-                          {selectedLetter.targetCompany} Hiring Team
+                    {/* Top Header & Delete Action */}
+                    <div className="flex items-center justify-between px-1">
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                          {selectedLetter.targetCompany} — {selectedLetter.targetPosition}
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          Generated {selectedLetter.dateGenerated} • Recipient: {selectedLetter.recipientName || 'Hiring Team'}
                         </p>
-                        <p>Re: Application for <em>{selectedLetter.targetPosition}</em></p>
                       </div>
 
-                      {/* Letter Body or Textarea */}
-                      {editingLetterId === selectedLetter.id ? (
-                        <div className="space-y-3">
-                          <textarea
-                            value={letterDraft}
-                            onChange={(e) => setLetterDraft(e.target.value)}
-                            rows={14}
-                            className="w-full text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-slate-900 dark:text-white leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          />
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => setEditingLetterId(null)}>
-                              Cancel
-                            </Button>
-                            <Button variant="primary" size="sm" onClick={() => handleSaveLetter(selectedLetter.id)}>
-                              Save Changes
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4 text-sm text-slate-800 dark:text-slate-200 leading-relaxed text-justify">
-                          {selectedLetter.bodyText.split('\n\n').map((para, i) => (
-                            <p key={i}>{para}</p>
-                          ))}
-                        </div>
-                      )}
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete cover letter for "${selectedLetter.targetCompany}"?`)) {
+                            deleteCoverLetter(selectedLetter.id);
+                            setSelectedLetter(coverLetters.find((x) => x.id !== selectedLetter.id) ?? null);
+                          }
+                        }}
+                        className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                        title="Delete letter"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Cover Letter Document Canvas with DocumentToolbar & Live Inline Editing */}
+                    <div className="flex justify-center overflow-x-auto">
+                      <CoverLetterPreview
+                        coverLetter={{
+                          subject: `Re: Application for ${selectedLetter.targetPosition} – ${selectedLetter.targetCompany}`,
+                          opening: `Dear ${selectedLetter.targetCompany} Team,`,
+                          body: selectedLetter.bodyText,
+                          closing: `Sincerely,\n${profile.name}`,
+                          fullText: selectedLetter.bodyText,
+                          wordCount: selectedLetter.bodyText.trim().split(/\s+/).filter(Boolean).length,
+                        }}
+                        profile={profile}
+                        targetCompany={selectedLetter.targetCompany}
+                        targetPosition={selectedLetter.targetPosition}
+                        showToolbar={true}
+                        editable={true}
+                        formatSettings={letterFormatSettings}
+                        onFormatChange={setLetterFormatSettings}
+                        onExportDocx={() => handleExportLetterDocx(selectedLetter)}
+                        onExportPdf={() => handleExportLetterPdf(selectedLetter)}
+                        onChange={(updated) => {
+                          updateCoverLetter(selectedLetter.id, updated.body);
+                        }}
+                      />
                     </div>
                   </>
                 )}
@@ -1108,14 +1082,32 @@ function ResumeHubContent() {
           </div>
         </form>
       </Modal>
+
+      {/* Upload & Replace Master Resume Modal */}
+      <Modal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        title="Upload / Replace Resume"
+        description="Drop or select your latest PDF or Word resume (.pdf, .doc, .docx). ApplyIQ will extract and map all fields directly into your Master Resume."
+        maxWidth="lg"
+      >
+        <div className="py-2">
+          <ResumeUploadZone onParsed={handleParsed} />
+        </div>
+      </Modal>
     </div>
   );
 }
 
+const ResumeHubDynamic = dynamic(() => Promise.resolve(ResumeHubContent), {
+  ssr: false,
+  loading: () => <ResumeHubSkeleton />,
+});
+
 export default function ResumeHubPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-400">Loading Resume Hub…</div>}>
-      <ResumeHubContent />
+    <Suspense fallback={<ResumeHubSkeleton />}>
+      <ResumeHubDynamic />
     </Suspense>
   );
 }

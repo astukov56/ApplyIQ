@@ -46,7 +46,7 @@ export function highlightText(
 }
 
 export function SectionDivider() {
-  return <div className="border-t border-slate-900 mt-1 mb-2.5 print:border-black" />;
+  return <div className="border-b border-gray-300 pb-0.5 mb-2 print:border-black" />;
 }
 
 export function SectionHeader({
@@ -57,14 +57,13 @@ export function SectionHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mt-3.5 mb-1">
+    <div className="border-b border-gray-300 pb-0.5 mb-2 mt-1 print:border-black">
       <div className="flex items-center justify-between">
-        <h2 className="text-[11px] font-bold tracking-[0.14em] uppercase text-slate-900 print:text-black">
+        <h2 className="text-[11px] font-bold tracking-[0.08em] uppercase text-gray-900 print:text-black">
           {title}
         </h2>
         {action && <div className="print:hidden">{action}</div>}
       </div>
-      <SectionDivider />
     </div>
   );
 }

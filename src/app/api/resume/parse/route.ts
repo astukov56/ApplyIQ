@@ -111,8 +111,11 @@ export async function POST(request: NextRequest) {
 
     // ----- Ask GPT-4o mini to structure the text -----
     const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return Response.json({ error: 'OPENAI_API_KEY is not configured' }, { status: 500 });
+    if (!apiKey || apiKey.trim() === '' || apiKey === 'your-openai-api-key' || apiKey.startsWith('sk-placeholder')) {
+      return Response.json(
+        { error: 'Invalid OpenAI API key. Please verify OPENAI_API_KEY in your .env.local file.' },
+        { status: 401 }
+      );
     }
 
     const client = new OpenAI({ apiKey });
@@ -196,7 +199,23 @@ export async function POST(request: NextRequest) {
     return Response.json({ success: true, data: parsed });
   } catch (err: unknown) {
     console.error('[/api/resume/parse] error:', err);
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    return Response.json({ error: message }, { status: 500 });
+    const status = (err as { status?: number })?.status;
+    const code = (err as { code?: string })?.code;
+    const msg = err instanceof Error ? err.message : String(err);
+
+    if (
+      status === 401 ||
+      code === 'invalid_api_key' ||
+      msg.includes('401') ||
+      msg.toLowerCase().includes('incorrect api key') ||
+      msg.toLowerCase().includes('invalid api key')
+    ) {
+      return Response.json(
+        { error: 'Invalid OpenAI API key. Please verify OPENAI_API_KEY in your .env.local file.' },
+        { status: 401 }
+      );
+    }
+
+    return Response.json({ error: msg || 'Internal server error' }, { status: 500 });
   }
 }

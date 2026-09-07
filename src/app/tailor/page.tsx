@@ -34,9 +34,15 @@ import {
   Cloud,
 } from 'lucide-react';
 import clsx from 'clsx';
-import Link from 'next/link';
 import { exportResumeVersionDocx, exportCoverLetterDocx } from '@/lib/export/exportDocx';
-import { printHtml, buildResumeHtml, buildCoverLetterHtml } from '@/lib/export/exportPdf';
+import { printHtml, buildResumeHtml, buildCoverLetterHtml, exportResumeVersionPdf } from '@/lib/export/exportPdf';
+import type { ResumeFormatSettings } from '@/types/resumeFormat';
+import {
+  DEFAULT_FORMAT_SETTINGS,
+  DEFAULT_COVER_LETTER_FORMAT_SETTINGS,
+  getSavedFormatSettings,
+  saveFormatSettings,
+} from '@/types/resumeFormat';
 
 // ---------------------------------------------------------------------------
 // Studio View Types
@@ -512,51 +518,35 @@ export default function AITailorPage() {
     setStudioTab('jobfit');
   };
 
+  // Format states for tailored resume and cover letter
+  const [resumeFormatSettings, setResumeFormatSettings] = useState<ResumeFormatSettings>(() =>
+    getSavedFormatSettings('resume', DEFAULT_FORMAT_SETTINGS)
+  );
+  const [letterFormatSettings, setLetterFormatSettings] = useState<ResumeFormatSettings>(() =>
+    getSavedFormatSettings('cover_letter', DEFAULT_COVER_LETTER_FORMAT_SETTINGS)
+  );
+
+  const handleUpdateResumeFormat = (updated: ResumeFormatSettings) => {
+    setResumeFormatSettings(updated);
+    saveFormatSettings('resume', updated);
+  };
+
+  const handleUpdateLetterFormat = (updated: ResumeFormatSettings) => {
+    setLetterFormatSettings(updated);
+    saveFormatSettings('cover_letter', updated);
+  };
+
   // ---------------------------------------------------------------------------
   // Export Handlers (always export latest live/edited content)
   // ---------------------------------------------------------------------------
   const handleExportResumePdf = () => {
     const ver = liveResume ?? masterVersion;
-    const html = buildResumeHtml({
-      name: profile.name,
-      title: profile.title,
-      email: profile.email,
-      phone: profile.phone,
-      location: profile.location,
-      linkedinUrl: profile.linkedinUrl,
-      githubUrl: profile.githubUrl,
-      websiteUrl: profile.websiteUrl,
-      summary: ver.summary,
-      skillsText: ver.skills.map((s) => s.name).join(', '),
-      experiences: ver.experiences.map((e) => ({
-        role: e.role,
-        company: e.company,
-        start: e.startDate,
-        end: e.endDate,
-        location: e.location,
-        highlights: e.highlights,
-      })),
-      projects: ver.projects.map((p) => ({
-        name: p.title,
-        techStack: p.techStack,
-        bullets: [p.description],
-      })),
-      education: ver.education.map((edu) => ({
-        degree: edu.degree,
-        institution: edu.institution,
-        start: edu.startDate,
-        end: edu.endDate,
-        grade: edu.grade,
-        details: edu.details,
-      })),
-    });
-
-    printHtml(html, `${docName} - ${ver.title}`);
+    exportResumeVersionPdf(ver, profile, resumeFormatSettings);
   };
 
   const handleExportResumeDocx = () => {
     const ver = liveResume ?? result?.tailoredResume ?? masterVersion;
-    exportResumeVersionDocx(ver, profile);
+    exportResumeVersionDocx(ver, profile, resumeFormatSettings);
   };
 
   const handleExportLetterPdf = () => {
@@ -565,11 +555,13 @@ export default function AITailorPage() {
     const finalCompany = targetCompany.trim() || result?.extractedCompany || 'Target Company';
     const html = buildCoverLetterHtml({
       name: profile.name,
+      title: profile.title,
       email: profile.email,
       phone: profile.phone,
       location: profile.location,
       linkedinUrl: profile.linkedinUrl,
       githubUrl: profile.githubUrl,
+      websiteUrl: profile.websiteUrl,
       targetCompany: finalCompany,
       targetPosition: resumeTitle.trim() || 'Role',
       bodyText: cl.body,
@@ -579,7 +571,7 @@ export default function AITailorPage() {
         year: 'numeric',
       }),
     });
-    printHtml(html, `Cover Letter - ${profile.name} for ${finalCompany}`);
+    printHtml(html, `Cover Letter - ${profile.name} for ${finalCompany}`, letterFormatSettings);
   };
 
   const handleExportLetterDocx = () => {
@@ -596,7 +588,8 @@ export default function AITailorPage() {
         recipientName: `${finalCompany} Team`,
         bodyText: cl.body,
       },
-      profile
+      profile,
+      letterFormatSettings
     );
   };
 
@@ -931,6 +924,10 @@ export default function AITailorPage() {
                   highlightKeywords={new Set(reactiveAts.matchedKeywords)}
                   showControls
                   editable={!stagedModification}
+                  formatSettings={resumeFormatSettings}
+                  onFormatChange={handleUpdateResumeFormat}
+                  onExportDocx={handleExportResumeDocx}
+                  onExportPdf={handleExportResumePdf}
                   onChange={(updated) => {
                     setLiveResume(updated);
                     pushChange('Updated resume content', 'edit');
@@ -951,6 +948,10 @@ export default function AITailorPage() {
                   targetPosition={targetRole || result?.extractedRole || resumeTitle || 'Target Position'}
                   showToolbar
                   editable={!stagedModification}
+                  formatSettings={letterFormatSettings}
+                  onFormatChange={handleUpdateLetterFormat}
+                  onExportDocx={handleExportLetterDocx}
+                  onExportPdf={handleExportLetterPdf}
                   onChange={(updated) => {
                     setLiveCoverLetter(updated);
                     pushChange('Updated cover letter content', 'edit');

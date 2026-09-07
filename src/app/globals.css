@@ -24,3 +24,49 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@page {
+  size: A4 portrait;
+  margin: 0; /* Strips browser default header (title, date) & footer (URL, page numbers) */
+}
+
+@media print {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Apply page padding directly to the printable sheet instead of the page */
+  .resume-sheet {
+    padding: 12mm 15mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-content: flex-start !important;
+  }
+
+  .resume-sheet > div {
+    justify-content: flex-start !important;
+    align-content: flex-start !important;
+    height: auto !important;
+  }
+
+  /* Ensure sections never push a solitary break */
+  section, .resume-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .no-print { display: none !important; }
+}

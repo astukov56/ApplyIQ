@@ -147,6 +147,7 @@ interface AppContextType {
   resumes: ResumeVersion[];
   getMasterResume: () => ResumeVersion;
   createTailoredResume: (tailoredData: Partial<ResumeVersion>, title: string) => ResumeVersion;
+  updateResumeVersion: (id: string, updates: Partial<ResumeVersion>) => void;
   deleteResumeVersion: (id: string) => void;
 
   // Cover Letter Actions
@@ -158,6 +159,7 @@ interface AppContextType {
 
   // Data Reset
   resetToMockData: () => void;
+  resetMasterResume: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -1282,6 +1284,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newVersion;
   };
 
+  const updateResumeVersion = (id: string, updates: Partial<ResumeVersion>) => {
+    setResumes((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString() } : r))
+    );
+  };
+
   const deleteResumeVersion = (id: string) => {
     setResumes((prev) => prev.filter((r) => r.id !== id || r.isMaster));
   };
@@ -1404,6 +1412,35 @@ Joining ${company} represents an exciting opportunity to apply my technical exec
     } catch (_) {}
   };
 
+  const resetMasterResume = () => {
+    setProfile(EMPTY_PROFILE);
+    setMasterResume(EMPTY_MASTER_RESUME);
+    setResumes([buildInitialMasterVersion(EMPTY_MASTER_RESUME)]);
+    try {
+      localStorage.removeItem(STORAGE_KEYS.PROFILE);
+      localStorage.removeItem(STORAGE_KEYS.MASTER_RESUME);
+      localStorage.removeItem(STORAGE_KEYS.RESUMES);
+      localStorage.removeItem('applyiq_resume_scratch');
+      sessionStorage.removeItem('applyiq_resume_scratch');
+    } catch (_) {}
+
+    const ctx = sbCtx();
+    if (ctx) {
+      ctx.sb
+        .from('master_resumes')
+        .upsert(masterResumeToUpsertRow(EMPTY_MASTER_RESUME, ctx.uid))
+        .then(({ error }) => {
+          if (error) console.error('resetMasterResume error:', error.message);
+        });
+      ctx.sb
+        .from('profiles')
+        .upsert(profileToUpsertRow(EMPTY_PROFILE, ctx.uid))
+        .then(({ error }) => {
+          if (error) console.error('resetProfile error:', error.message);
+        });
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -1481,6 +1518,7 @@ Joining ${company} represents an exciting opportunity to apply my technical exec
         resumes,
         getMasterResume,
         createTailoredResume,
+        updateResumeVersion,
         deleteResumeVersion,
 
         // Cover Letter
@@ -1492,6 +1530,7 @@ Joining ${company} represents an exciting opportunity to apply my technical exec
 
         // Reset
         resetToMockData,
+        resetMasterResume,
       }}
     >
       {children}
