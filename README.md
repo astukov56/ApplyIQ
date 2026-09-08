@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ApplyIQ 🚀
 
-## Getting Started
+ApplyIQ is an AI-driven resume tailoring and career document platform engineered to align candidates with ATS criteria and target job specifications.
 
-First, run the development server:
+**Live Application:** [https://applyiqofficial.vercel.app](https://applyiqofficial.vercel.app)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ⚡ Getting Started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Go to **[applyiqofficial.vercel.app](https://applyiqofficial.vercel.app)**.
+2. Log in using **Google** or **GitHub** SSO.
+3. Import or create your resume profile:
+   * **Upload & Auto-Parse Master Resume:** Drop a `.docx` or `.pdf` file to parse work history, education, skills, and links directly into your master profile.
+   * **Create from Scratch:** Use the blank canvas to build a fresh, ATS-compliant profile step-by-step.
+   * **Quick Paste:** Paste raw career text for automated section extraction.
+4. Input a target job title and description to generate tailored resume snapshots and matching cover letters.
+5. Export your final documents directly as `.docx` or print-ready PDF.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🛠️ Core Capabilities
 
-To learn more about Next.js, take a look at the following resources:
+* **Master Document Engine:** Centralize career history into an extensible single source of truth.
+* **Targeted Resume Snapshots:** Generate contextual, ATS-tailored resume variations matching specific job requirements.
+* **AI Cover Letter Studio:** Generate aligned, personalized cover letters directly from your parsed experience and target job postings.
+* **Client-Side Export Pipeline:** High-fidelity document generation producing Word (`.docx`) and clean PDFs without losing ATS structure.
+* **Unified SSO:** Fast, authenticated access via Supabase Authentication (Google & GitHub).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🔒 Data Privacy & Security
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* User document profiles and parsed artifacts are strictly partitioned to your authenticated account.
+* Parsing and AI document generation tasks are processed via isolated, server-authenticated API routes.
